@@ -1,115 +1,90 @@
 ﻿using System;
-using RectpackSharp;
-using CsvHelper;
-using CsvHelper.Configuration;
-using System.IO;
-using System.Globalization;
-using System.Collections.Generic;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
+using System.Linq;
+using System.Threading;
+using CommandLine;
 
 namespace FloorTilingOptimization
 {
-    class Program
+    public class Program
     {
-        static readonly CsvConfiguration Config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        public class Options
         {
-            Delimiter = ";"
-        };
+            [Option('s', SetName = "n", Required = true, HelpText = "CSV file containing sheet sizes")]
+            public string SheetsFile { get; set; }
+            [Option('b', SetName = "n", Required = true, HelpText = "CSV file containing beam sizes and locations")]
+            public string BeamsFile { get; set; }
+            [Option('g', SetName = "g", Required = true, HelpText = "Generate example CSV files with required headers")]
+            public bool GenerateExampleCsv { get; set; }
+            [Option('d', SetName = "n", Default = 1, Required = false, HelpText = "Density for RectpackSharp")]
+            public float PackingDensity { get; set; }
+            [Option('p', SetName = "n", Default = false, Required = false, HelpText = "Run RectpackSharp")]
+            public bool RunRectpack { get; set; }
+            [Option('f', SetName = "n", Default = 1, Required = false, HelpText = "GA target fitness reduction multiplier")]
+            public float TargetFitnessReduction { get; set; }
+        }
 
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
-            using TextReader tr = new StreamReader(args[0]);
-            using CsvReader cr = new CsvReader(tr, Config);
-            List<PackingRectangle> rects = new List<PackingRectangle>();
-            while (cr.Read())
+            Parser.Default.ParseArguments<Options>(args).WithParsed(x =>
             {
-                uint w = cr.GetField<uint>(0);
-                uint h = cr.GetField<uint>(1);
-                if (h > w)
+                if (x.GenerateExampleCsv)
                 {
-                    uint t = h;
-                    h = w;
-                    w = t;
+                    ExampleMain();
                 }
-                int thickness = cr.GetField<int>(2);
-                rects.Add(new PackingRectangle(0, 0, w, h, thickness));
-            }
-            var r = rects.ToArray();
-            RectanglePacker.Pack(r, out PackingRectangle b, PackingHints.FindBest, 10);
-            SaveAsImage(r, in b, Path.Combine(Environment.CurrentDirectory, "pack.png"));
+                else
+                {
+                    RealMain(x.SheetsFile, x.BeamsFile,
+                        x.RunRectpack, x.PackingDensity, x.TargetFitnessReduction);
+                }
+            });
         }
 
-        static void SaveAsImage(PackingRectangle[] rectangles, in PackingRectangle bounds, string file)
+        public static void ExampleMain()
         {
-            using Image<Rgba32> image = new Image<Rgba32>((int)bounds.Width, (int)bounds.Height);
-            image.Mutate(x => x.BackgroundColor(Color.Black));
-
-            for (int i = 0; i < rectangles.Length; i++)
-            {
-                PackingRectangle r = rectangles[i];
-                Rgba32 color = FromHue(i / 64f % 1);
-                for (int x = 0; x < r.Width; x++)
-                    for (int y = 0; y < r.Height; y++)
-                        image[x + (int)r.X, y + (int)r.Y] = color;
-            }
-
-            image.SaveAsPng(file);
+            CsvApi.SaveExampleCsv<Beam>(ImagingApi.CreateFilePathInCurrentDir("beams.csv"));
+            CsvApi.SaveExampleCsv<Sheet>(ImagingApi.CreateFilePathInCurrentDir("sheets.csv"));
         }
 
-        static Rgba32 FromHue(float hue)
+        public static void RealMain(string sheetsPath, string beamsPath,
+            bool runRectpack, float packingDensity, float gaTargetReduction)
         {
-            hue *= 360.0f;
+            Console.WriteLine("Processing sheets...");
+            var sheets = CsvApi.LoadCsv<Sheet>(sheetsPath);
+            Sheet.RotateAndTag(sheets);
+            Console.WriteLine("Processing beams...");
+            var beams = CsvApi.LoadCsv<Beam>(beamsPath);
+            var structure = new SupportStructure(beams);
+            structure.SaveStructureImage();
+            if (runRectpack)
+            {
+                Console.WriteLine("Running RectpackSharp...");
+                RectPack.PackAndSaveImage(sheets, packingDensity);
+            }
+            Console.WriteLine("Running GA...");
+            Console.CancelKeyPress += Console_CancelKeyPress;
+            GeneticAlgorithmProvider.GenerationRan += GeneticAlgorithmProvider_GenerationRan;
+            double targetFitness = structure.BoundedArea * gaTargetReduction / sheets.Sum(x => x.Area);
+            Console.WriteLine($"Target fitness = {targetFitness}");
+            GeneticAlgorithmProvider.Run(structure, sheets, targetFitness, _TokenSource.Token);
+            Console.WriteLine("Drawing best result...");
+            ImagingApi.SaveRectanglesAsImage(sheets.Select(x => x.ToRectangle()).ToArray(), structure.Bounds,
+                ImagingApi.CreateFilePathInCurrentDir("ga.png"));
+            structure.SaveLastAssessedImage();
+            Console.WriteLine("Finished.");
+        }
 
-            float h = hue / 60.0f;
-            float x = (1.0f - Math.Abs((h % 2.0f) - 1.0f));
+        private static CancellationTokenSource _TokenSource = new CancellationTokenSource();
 
-            float r, g, b;
-            if (h >= 0.0f && h < 1.0f)
-            {
-                r = 1;
-                g = x;
-                b = 0.0f;
-            }
-            else if (h >= 1.0f && h < 2.0f)
-            {
-                r = x;
-                g = 1;
-                b = 0.0f;
-            }
-            else if (h >= 2.0f && h < 3.0f)
-            {
-                r = 0.0f;
-                g = 1;
-                b = x;
-            }
-            else if (h >= 3.0f && h < 4.0f)
-            {
-                r = 0.0f;
-                g = x;
-                b = 1;
-            }
-            else if (h >= 4.0f && h < 5.0f)
-            {
-                r = x;
-                g = 0.0f;
-                b = 1;
-            }
-            else if (h >= 5.0f && h < 6.0f)
-            {
-                r = 1;
-                g = 0.0f;
-                b = x;
-            }
-            else
-            {
-                r = 0.0f;
-                g = 0.0f;
-                b = 0.0f;
-            }
+        private static void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)
+        {
+            Console.WriteLine("Cancellation requested...");
+            _TokenSource.Cancel();
+            e.Cancel = true;
+        }
 
-            return new Rgba32(r, g, b);
+        private static void GeneticAlgorithmProvider_GenerationRan(object sender, Tuple<int, double, double> e)
+        {
+            Console.WriteLine($"G = {e.Item1}, F = {e.Item2}, A = {e.Item3}");
         }
     }
 }
