@@ -6,6 +6,6 @@ namespace FloorTilingOptimization
 {
     public class SupportStructure
     {
-        public 
+        
     }
 }

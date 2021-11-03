@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "FloorTilingOptimization": {
+      "commandName": "Project",
+      "commandLineArgs": "E:\\sample.csv"
+    }
+  }
+}
