@@ -1,4 +1,5 @@
 ﻿using CsvHelper.Configuration.Attributes;
+using System.Drawing;
 
 namespace FloorTilingOptimization
 {
@@ -25,6 +26,7 @@ namespace FloorTilingOptimization
             Width = w;
             RequiredOverlap = overlap;
             Reference = reference;
+
         }
 
         public int X { get; set; }
@@ -34,5 +36,9 @@ namespace FloorTilingOptimization
         public int RequiredOverlap { get; set; }
         [Optional]
         public BeamLocationReference Reference { get; set; } = BeamLocationReference.TopLeft;
+        [Optional]
+        public bool IsWall { get; set; } = false;
+        [Ignore]
+        public Rectangle Rect { get; set; }
     }
 }

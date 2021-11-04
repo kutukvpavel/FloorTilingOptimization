@@ -7,7 +7,6 @@ namespace FloorTilingOptimization
 {
     public class Sheet
     {
-        private int _InitialArea = -1;
 
         public Sheet()
         {
@@ -70,6 +69,28 @@ namespace FloorTilingOptimization
                 item.Orient(vertically);
                 item.Tag = tag++;
             }
+        }
+
+        public static Sheet DeepCopy(Sheet s)
+        {
+            return new Sheet(s.Length, s.Width, s.Thickness)
+            {
+                X = s.X,
+                Y = s.Y,
+                IsChild = s.IsChild,
+                IsUsed = s.IsUsed,
+                Tag = s.Tag
+            };
+        }
+
+        public static Sheet[] DeepCopy(Sheet[] s)
+        {
+            var res = new Sheet[s.Length];
+            for (int i = 0; i < s.Length; i++)
+            {
+                res[i] = Sheet.DeepCopy(s[i]);
+            }
+            return res;
         }
     }
 }

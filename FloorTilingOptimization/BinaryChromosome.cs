@@ -8,9 +8,9 @@ namespace FloorTilingOptimization
 {
     public class BinaryChromosome : BinaryChromosomeBase
     {
-        public BinaryChromosome(int length) : base(length)
+        public BinaryChromosome(int length, bool initializeAllZeros = false) : base(length)
         {
-            var vals = RandomizationProvider.Current.GetInts(length, 0, 2);
+            var vals = initializeAllZeros ? new int[length] : RandomizationProvider.Current.GetInts(length, 0, 2);
             for (int i = 0; i < length; i++)
             {
                 ReplaceGene(i, new Gene(vals[i]));

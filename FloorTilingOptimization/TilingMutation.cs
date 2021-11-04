@@ -5,7 +5,7 @@ using GeneticSharp.Domain.Mutations;
 
 namespace FloorTilingOptimization
 {
-    public class TilingMutation : Multimutation
+    public class TilingMutation : Multimutation, IMutation
     {
         public TilingMutation() : base(new ReverseSequenceMutation(), new FlipBitMutation())
         {

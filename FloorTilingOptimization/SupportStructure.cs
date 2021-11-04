@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Drawing;
+using System.Linq;
 
 namespace FloorTilingOptimization
 {
@@ -46,13 +47,12 @@ namespace FloorTilingOptimization
                 y = CheckPositiveWithTolerance(y);
                 l = CheckPositiveWithTolerance(l);
                 w = CheckPositiveWithTolerance(w);
-                var r = new Rectangle(x, y, l, w);
-                a.Add(r);
-                Bounds = Rectangle.Union(Bounds, r);
+                item.Rect = new Rectangle(x, y, l, w);
+                Bounds = Rectangle.Union(Bounds, item.Rect);
             }
             BoundedArea = GetRectArea(Bounds);
             Bounds.Inflate(Tolerance, Tolerance);
-            _MountingZones = a.ToArray();
+            _MountingZones = data.ToArray();
         }
 
         public int BoundedArea { get; }
@@ -60,19 +60,23 @@ namespace FloorTilingOptimization
 
         public void SaveStructureImage()
         {
-            ImagingApi.SaveRectanglesAsImage(_MountingZones, Bounds, 
+            ImagingApi.SaveRectanglesAsImage(_MountingZones.Select(x => x.Rect).ToArray(), Bounds, 
                 ImagingApi.CreateFilePathInCurrentDir("structure.png"));
-        }
-
-        public void SaveLastAssessedImage()
-        {
-            ImagingApi.SaveRectanglesAsImage(_LastAssessed.ToArray(), Bounds,
-                ImagingApi.CreateFilePathInCurrentDir("last_assessed.png"));
         }
 
         public Sheet[] GetLastChildren()
         {
             return _Children.ToArray();
+        }
+
+        public Rectangle[] GetLastAssessed()
+        {
+            return _LastAssessed.ToArray();
+        }
+
+        public Rectangle[] GetMountingZones()
+        {
+            return _MountingZones.Select(x => x.Rect).ToArray();
         }
 
         public Rectangle GetCutRect(Sheet s)
@@ -82,7 +86,7 @@ namespace FloorTilingOptimization
             int c = 0;
             foreach (var item in _MountingZones)
             {
-                Rectangle i = Rectangle.Intersect(item, r);
+                Rectangle i = Rectangle.Intersect(item.Rect, r);
                 if (!i.IsEmpty)
                 {
                     if (c++ == 0)
@@ -116,19 +120,19 @@ namespace FloorTilingOptimization
                 it.Y = lastBottom;
                 it.X = GetLeftAlignment(it, lastColumn) - Tolerance;
                 var c = GetCutRect(it);
+                totalSheetArea += it.Area;
                 it.IsUsed = !c.IsEmpty;
                 if (it.IsUsed)
                 {
                     _Children.Add(new Sheet(it.Length - c.Width, it.Width - c.Width, it.Thickness) 
                     { 
-                        Tag = it.Tag, IsUsed = false, IsChild = true
+                        Tag = it.Tag, IsUsed = false, IsChild = true, X = _Children.LastOrDefault()?.Right ?? 0
                     });
                     currentColumn.Add(c);
                     coveredArea += GetRectArea(c);
                     it.X += Tolerance;
                     c.Offset(Tolerance, 0);
                     _LastAssessed.Add(c);
-                    totalSheetArea += it.Area;
                     lastBottom += it.Width + Tolerance;
                     if (lastBottom > bottomWithTolerance)
                     {
@@ -144,7 +148,7 @@ namespace FloorTilingOptimization
 
         #region Private
 
-        private Rectangle[] _MountingZones;
+        private Beam[] _MountingZones;
         private List<Rectangle> _LastAssessed = new List<Rectangle>();
         private List<Sheet> _Children = new List<Sheet>();
 
