@@ -16,18 +16,22 @@ namespace FloorTilingOptimization
     {
         public static event EventHandler<Tuple<int, double, double>> GenerationRan;
 
-        public static void Run(SupportStructure support, Sheet[] sheets, double expectedFitness, CancellationToken cancel)
+        public static int[] Run(SupportStructure support, Sheet[] sheets, double expectedFitness, CancellationToken cancel)
         {
             var fitness = new FuncFitness((x) =>
             {
-                var c = x as IndexPermutationChromosome;
+                var c = (TilingChromosome)x;
+                for (int i = 0; i < sheets.Length; i++)
+                {
+                    sheets[i].Orient(c.GetFlip(i));
+                }
                 var res = support.PlaceAndAssess(sheets, c.GetSequence());
                 c.TotalAreaCovered = res.Item2;
                 return res.Item1;
             });
-            var chromosome = new IndexPermutationChromosome(sheets.Length);
-            var crossover = new OrderedCrossover();
-            var mutation = new ReverseSequenceMutation();
+            var chromosome = new TilingChromosome(sheets.Length);
+            var crossover = new TilingCrossover();
+            var mutation = new TilingMutation();
             var selection = new RouletteWheelSelection();
             var population = new Population(50, 100, chromosome);
             var ga = new GeneticAlgorithm(population, fitness, selection, crossover, mutation);
@@ -41,7 +45,7 @@ namespace FloorTilingOptimization
             // Everty time a generation ends, we log the best solution.
             ga.GenerationRan += (o, e) =>
             {
-                var c = (IndexPermutationChromosome)ga.BestChromosome;
+                var c = (TilingChromosome)ga.BestChromosome;
 #if DEBUG
                 Console.WriteLine($"Current order: {string.Join(", ", c.GetSequence())}");
 #endif
@@ -52,11 +56,16 @@ namespace FloorTilingOptimization
             // Starts the genetic algorithm in a separate thread.
             var gaThread = new Thread(() => ga.Start());
             gaThread.Start();
-            while (!cancel.IsCancellationRequested && gaThread.IsAlive)
+            while (gaThread.IsAlive)
             {
                 Thread.Sleep(100);
+                if (cancel.IsCancellationRequested)
+                {
+                    ga.Stop();
+                    Thread.Sleep(1000);
+                }
             }
-            if (cancel.IsCancellationRequested) ga.Stop();
+            return (ga.BestChromosome as OrderedChromosome).GetSequence();
         }
     }
 }

@@ -70,6 +70,11 @@ namespace FloorTilingOptimization
                 ImagingApi.CreateFilePathInCurrentDir("last_assessed.png"));
         }
 
+        public Sheet[] GetLastChildren()
+        {
+            return _Children.ToArray();
+        }
+
         public Rectangle GetCutRect(Sheet s)
         {
             Rectangle r = s.ToRectangle();
@@ -96,31 +101,44 @@ namespace FloorTilingOptimization
 
         public Tuple<double, double> PlaceAndAssess(Sheet[] s, int[] placementOrder)
         {
+            _Children.Clear();
             _LastAssessed.Clear();
             _LastAssessed.Capacity = s.Length;
-            int lastColumnBoundary = 0;
-            int currentColumnBoundary = 0;
             int lastBottom = 0;
             double coveredArea = 0;
             double totalSheetArea = 0;
+            int bottomWithTolerance = Bounds.Bottom - 9 * Tolerance;
+            List<Rectangle> lastColumn = new List<Rectangle>();
+            List<Rectangle> currentColumn = new List<Rectangle>();
             foreach (var item in placementOrder)
             {
                 var it = s[item];
-                it.X = lastColumnBoundary;
                 it.Y = lastBottom;
+                it.X = GetLeftAlignment(it, lastColumn) - Tolerance;
                 var c = GetCutRect(it);
-                coveredArea += GetRectArea(c);
-                _LastAssessed.Add(c);
-                totalSheetArea += it.Area;
-                lastBottom += c.IsEmpty ? 0 : it.Width;
-                if (c.Right > currentColumnBoundary) currentColumnBoundary = c.Right;
-                if (lastBottom > Bounds.Bottom)
+                it.IsUsed = !c.IsEmpty;
+                if (it.IsUsed)
                 {
-                    lastColumnBoundary = currentColumnBoundary - Tolerance;
-                    lastBottom = 0;
+                    _Children.Add(new Sheet(it.Length - c.Width, it.Width - c.Width, it.Thickness) 
+                    { 
+                        Tag = it.Tag, IsUsed = false, IsChild = true
+                    });
+                    currentColumn.Add(c);
+                    coveredArea += GetRectArea(c);
+                    it.X += Tolerance;
+                    c.Offset(Tolerance, 0);
+                    _LastAssessed.Add(c);
+                    totalSheetArea += it.Area;
+                    lastBottom += it.Width + Tolerance;
+                    if (lastBottom > bottomWithTolerance)
+                    {
+                        lastColumn = currentColumn;
+                        currentColumn = new List<Rectangle>();
+                        lastBottom = 0;
+                    }
                 }
             }
-            double score = coveredArea * coveredArea / (totalSheetArea * BoundedArea);
+            double score = coveredArea / BoundedArea - (totalSheetArea - coveredArea) / totalSheetArea;
             return new Tuple<double, double>(score, coveredArea);
         }
 
@@ -128,6 +146,7 @@ namespace FloorTilingOptimization
 
         private Rectangle[] _MountingZones;
         private List<Rectangle> _LastAssessed = new List<Rectangle>();
+        private List<Sheet> _Children = new List<Sheet>();
 
         private static int CheckPositiveWithTolerance(int i)
         {
@@ -151,6 +170,19 @@ namespace FloorTilingOptimization
         private static int GetRectArea(Rectangle r)
         {
             return r.Width * r.Height;
+        }
+
+        private static int GetLeftAlignment(Sheet s, List<Rectangle> lastColumn)
+        {
+            int yMin = s.Y - Tolerance;
+            int yMax = s.Bottom + Tolerance;
+            int maxRight = 0;
+            foreach (var item in lastColumn)
+            {
+                if (!(yMin > item.Bottom || yMax < item.Top))
+                    if (item.Right > maxRight) maxRight = item.Right;
+            }
+            return maxRight;
         }
 
         #endregion

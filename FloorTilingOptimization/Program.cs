@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Drawing;
 using System.Linq;
 using System.Threading;
 using CommandLine;
@@ -50,7 +51,7 @@ namespace FloorTilingOptimization
         {
             Console.WriteLine("Processing sheets...");
             var sheets = CsvApi.LoadCsv<Sheet>(sheetsPath);
-            Sheet.RotateAndTag(sheets);
+            Sheet.RotateAndTag(sheets, false);
             Console.WriteLine("Processing beams...");
             var beams = CsvApi.LoadCsv<Beam>(beamsPath);
             var structure = new SupportStructure(beams);
@@ -65,9 +66,14 @@ namespace FloorTilingOptimization
             GeneticAlgorithmProvider.GenerationRan += GeneticAlgorithmProvider_GenerationRan;
             double targetFitness = structure.BoundedArea * gaTargetReduction / sheets.Sum(x => x.Area);
             Console.WriteLine($"Target fitness = {targetFitness}");
-            GeneticAlgorithmProvider.Run(structure, sheets, targetFitness, _TokenSource.Token);
+            int[] best = GeneticAlgorithmProvider.Run(structure, sheets, targetFitness, _TokenSource.Token);
             Console.WriteLine("Drawing best result...");
-            ImagingApi.SaveRectanglesAsImage(sheets.Select(x => x.ToRectangle()).ToArray(), structure.Bounds,
+            Rectangle[] reordered = new Rectangle[sheets.Length];
+            for (int i = 0; i < best.Length; i++)
+            {
+                if (sheets[best[i]].IsUsed) reordered[i] = sheets[best[i]].ToRectangle();
+            }
+            ImagingApi.SaveRectanglesAsImage(reordered, structure.Bounds,
                 ImagingApi.CreateFilePathInCurrentDir("ga.png"));
             structure.SaveLastAssessedImage();
             Console.WriteLine("Finished.");

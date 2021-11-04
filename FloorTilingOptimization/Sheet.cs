@@ -34,6 +34,8 @@ namespace FloorTilingOptimization
         [Ignore]
         public bool IsChild { get; set; } = false;
         [Ignore]
+        public bool IsUsed { get; set; } = true;
+        [Ignore]
         public int Bottom { get => Y + Width; }
         [Ignore]
         public int Right { get => X + Length; }
@@ -43,6 +45,11 @@ namespace FloorTilingOptimization
             int t = Length;
             Length = Width;
             Width = t;
+        }
+
+        public void Orient(bool vertically)
+        {
+            if ((Length < Width) != vertically) FlipSides();
         }
 
         public Rectangle ToRectangle()
@@ -55,12 +62,12 @@ namespace FloorTilingOptimization
             return new PackingRectangle((uint)X, (uint)Y, (uint)Length, (uint)Width, Thickness);
         }
 
-        public static void RotateAndTag(IEnumerable<Sheet> sheets)
+        public static void RotateAndTag(IEnumerable<Sheet> sheets, bool vertically)
         {
             int tag = 0;
             foreach (var item in sheets)
             {
-                if (item.Length < item.Width) item.FlipSides();
+                item.Orient(vertically);
                 item.Tag = tag++;
             }
         }

@@ -11,6 +11,7 @@
     <PackageReference Include="GeneticSharp" Version="2.6.0" />
     <PackageReference Include="RectpackSharp" Version="1.0.2" />
     <PackageReference Include="SixLabors.ImageSharp" Version="1.0.4" />
+    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="1.0.0-beta13" />
   </ItemGroup>
 
 </Project>

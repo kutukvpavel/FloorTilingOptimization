@@ -1,13 +1,12 @@
-﻿
-using GeneticSharp.Domain.Chromosomes;
+﻿using GeneticSharp.Domain.Chromosomes;
 using GeneticSharp.Domain.Randomizations;
 using System.Linq;
 
 namespace FloorTilingOptimization
 {
-    public class IndexPermutationChromosome : ChromosomeBase
+    public class OrderedChromosome : ChromosomeBase
     {
-        public IndexPermutationChromosome(int length) : base(length)
+        public OrderedChromosome(int length) : base(length)
         {
             var numbers = RandomizationProvider.Current.GetUniqueInts(Length, 0, length);
             for (int i = 0; i < length; i++)
@@ -18,7 +17,7 @@ namespace FloorTilingOptimization
 
         public override IChromosome CreateNew()
         {
-            return new IndexPermutationChromosome(Length);
+            return new OrderedChromosome(Length);
         }
 
         public override Gene GenerateGene(int geneIndex)
@@ -29,15 +28,6 @@ namespace FloorTilingOptimization
         public int[] GetSequence()
         {
             return GetGenes().Select(x => (int)x.Value).ToArray();
-        }
-
-        public double TotalAreaCovered { get; set; }
-
-        public override IChromosome Clone()
-        {
-            var c = base.Clone() as IndexPermutationChromosome;
-            c.TotalAreaCovered = TotalAreaCovered;
-            return c;
         }
     }
 }

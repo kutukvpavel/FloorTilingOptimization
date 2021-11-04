@@ -1,50 +1,50 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
+using Path = System.IO.Path;
 using System.Text;
 using Rectangle = System.Drawing.Rectangle;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Drawing.Processing;
 
 namespace FloorTilingOptimization
 {
     public static class ImagingApi
     {
+        public static float ImageExtraSpaceMultiplier { get; set; } = 1.2f;
+
         public static string CreateFilePathInCurrentDir(string name)
         {
             return Path.Combine(Environment.CurrentDirectory, name);
         }
 
-        public static void SaveRectanglesAsImage(Rectangle[] rectangles, in Rectangle bounds, string file)
+        public static void SaveRectanglesAsImage(Rectangle[] rectangles, Rectangle bounds, string file)
         {
-            using Image<Rgba32> image = new Image<Rgba32>(bounds.Width, bounds.Height);
-            image.Mutate(x => x.BackgroundColor(Color.Black));
+            using Image<Rgba32> image = new Image<Rgba32>(
+                (int)Math.Ceiling(bounds.Width * ImageExtraSpaceMultiplier), 
+                (int)Math.Ceiling(bounds.Height * ImageExtraSpaceMultiplier));
 
-            int xOffset = bounds.X < 0 ? -bounds.X : 0;
-            int yOffset = bounds.Y < 0 ? -bounds.Y : 0;
+            float xOffset = bounds.Width * (ImageExtraSpaceMultiplier - 1) / 2;
+            float yOffset = bounds.Height * (ImageExtraSpaceMultiplier - 1) / 2;
+
+            image.Mutate(x => x.BackgroundColor(Color.Black));
+            image.Mutate(x => x.Draw(Color.White, 2.0f, new RectangleF(
+                bounds.X + xOffset,
+                bounds.Y + yOffset, 
+                bounds.Width, bounds.Height)));
+
             for (int i = 0; i < rectangles.Length; i++)
             {
                 Rectangle r = rectangles[i];
-                Rgba32 color = FromHue(i / 64f % 1);
-                for (int x = 0; x < r.Width; x++)
-                {
-                    for (int y = 0; y < r.Height; y++)
-                    {
-                        int xx = x + r.X + xOffset;
-                        int yy = y + r.Y + yOffset;
-                        if (xx < image.Width && yy < image.Height)
-                        {
-                            image[xx, yy] = color;
-                        }
-                    }
-                }
+                Rgba32 color = FromHue(i / 64f % 1, 0.5f);
+                image.Mutate(x => x.Fill(color, new RectangleF(r.X + xOffset, r.Y + yOffset, r.Width, r.Height)));
             }
 
             image.SaveAsPng(file);
         }
 
-        public static Rgba32 FromHue(float hue)
+        public static Rgba32 FromHue(float hue, float a = 1)
         {
             hue *= 360.0f;
 
@@ -95,7 +95,7 @@ namespace FloorTilingOptimization
                 b = 0.0f;
             }
 
-            return new Rgba32(r, g, b);
+            return new Rgba32(r, g, b, a);
         }
     }
 }
