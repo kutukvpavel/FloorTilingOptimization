@@ -1,44 +1,52 @@
-﻿using CsvHelper.Configuration.Attributes;
-using System.Drawing;
+﻿using SixLabors.ImageSharp;
+using System;
 
 namespace FloorTilingOptimization
 {
-    public enum BeamLocationReference
+    public class Beam : PlottableRect
     {
-        TopLeft,
-        TopRight,
-        BottomLeft,
-        BottomRight
-    }
+        public static int Tolerance { get; set; } = 5;
 
-    public class Beam
-    {
-        public Beam()
+        public Beam(int x, int y, int l, int w, int overlap, int id, Color c, 
+            RectLocationReference reference = RectLocationReference.TopLeft)
+            : base(Algorithms.FromReferencedTo(reference, x ,y, l, w), c, id)
         {
-
-        }
-        public Beam(int x, int y, int l, int w, int overlap, 
-            BeamLocationReference reference = BeamLocationReference.TopLeft)
-        {
-            X = x;
-            Y = y;
-            Length = l;
-            Width = w;
-            RequiredOverlap = overlap;
-            Reference = reference;
-
+            if (Rect.Width > Rect.Height)
+            {
+                int h = CheckPositiveWithTolerance(Rect.Height - 2 * overlap);
+                OverlapAccounted = new Rectangle(Rect.X, Rect.Y + (Rect.Height - h) / 2, Rect.Width, h);
+            }
+            else
+            {
+                int ww = CheckPositiveWithTolerance(Rect.Width - 2 * overlap);
+                OverlapAccounted = new Rectangle(Rect.X + (Rect.Width - ww) / 2, Rect.Y, ww, Rect.Height);
+            }
         }
 
-        public int X { get; set; }
-        public int Y { get; set; }
-        public int Length { get; set; }
-        public int Width { get; set; }
-        public int RequiredOverlap { get; set; }
-        [Optional]
-        public BeamLocationReference Reference { get; set; } = BeamLocationReference.TopLeft;
-        [Optional]
+        public Rectangle OverlapAccounted { get; }
         public bool IsWall { get; set; } = false;
-        [Ignore]
-        public Rectangle Rect { get; set; }
+
+        private static int CheckPositiveWithTolerance(int i)
+        {
+            if (i < 0)
+            {
+                if (i > -Tolerance)
+                {
+                    return Tolerance;
+                }
+                else
+                {
+                    throw new ArgumentException();
+                }
+            }
+            else if (i < Tolerance)
+            {
+                return Tolerance;
+            }
+            else
+            {
+                return i;
+            }
+        }
     }
 }

@@ -9,27 +9,28 @@ using System.Text;
 
 namespace FloorTilingOptimization
 {
-    public static class CsvApi
+    public static class CsvImporter
     {
-        public static CsvConfiguration CsvConfig { get; } = new CsvConfiguration(CultureInfo.InvariantCulture)
+        public static CsvConfiguration CsvConfig { get; } = new CsvConfiguration(CultureInfo.CurrentCulture)
         {
             Delimiter = ";",
             MissingFieldFound = null
         };
 
-        public static T[] LoadCsv<T>(string path)
+        public static T LoadCsv<T>(string path, ColorPalette c) where T : ICsvAware, new()
         {
             using TextReader tr = new StreamReader(path);
             using CsvReader cr = new CsvReader(tr, CsvConfig);
-            return cr.GetRecords<T>().ToArray();
+            var res = new T();
+            res.ReadCsv(cr, c);
+            return res;
         }
 
-        public static void SaveExampleCsv<T>(string path)
+        public static void SaveExampleCsv<T>(string path) where T : ICsvAware, new()
         {
             using TextWriter tw = new StreamWriter(path);
             using CsvWriter cw = new CsvWriter(tw, CsvConfig);
-            cw.WriteHeader<T>();
-            cw.NextRecord();
+            new T().WriteExampleCsv(cw);
         }
     }
 }

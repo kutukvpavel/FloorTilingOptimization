@@ -17,13 +17,11 @@ namespace FloorTilingOptimization
 
         public int Tiles { get; }
 
-        public double TotalAreaCovered { get; set; }
+        public Stock Assessed { get; set; }
 
-        public Rectangle[] AssessedRects { get; set; }
+        public Stock PlacedSheets { get; set; }
 
-        public Sheet[] Sheets { get; set; }
-
-        public Sheet[] Children { get; set; }
+        public Stock Children { get; set; }
 
         public int[] GetSequence()
         {
@@ -48,10 +46,9 @@ namespace FloorTilingOptimization
         public override IChromosome Clone()
         {
             var c = (TilingChromosome)base.Clone();
-            c.TotalAreaCovered = TotalAreaCovered;
-            c.AssessedRects = AssessedRects;
+            c.Assessed = Assessed;
             c.Children = Children;
-            c.Sheets = Sheets;
+            c.PlacedSheets = PlacedSheets;
             return c;
         }
     }

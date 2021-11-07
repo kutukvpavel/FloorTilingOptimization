@@ -1,96 +1,61 @@
 ﻿using CsvHelper.Configuration.Attributes;
 using RectpackSharp;
+using SixLabors.ImageSharp;
 using System.Collections.Generic;
-using System.Drawing;
+using System.Linq;
 
 namespace FloorTilingOptimization
 {
-    public class Sheet
+    public class Sheet : PlottableRect
     {
-
-        public Sheet()
+        public Sheet(int l, int w, int t, int index, Color c) 
+            : this(new Rectangle(0, 0, l, w), t, index, c)
+        { }
+        public Sheet(Rectangle r, int t, int index, Color c)
+            : base(r, c, index)
         {
-
-        }
-        public Sheet(int l, int w, int t)
-        {
-            Width = w;
-            Length = l;
             Thickness = t;
         }
-
-        [Optional]
-        public int X { get; set; } = 0;
-        [Optional]
-        public int Y { get; set; } = 0;
-        public int Length { get; set; }
-        public int Width { get; set; }
-        public int Thickness { get; set; }
-        [Ignore]
-        public int Tag { get; set; }
-        [Ignore]
-        public int Area { get => Length * Width; }
-        [Ignore]
-        public bool IsChild { get; set; } = false;
-        [Ignore]
-        public bool IsUsed { get; set; } = true;
-        [Ignore]
-        public int Bottom { get => Y + Width; }
-        [Ignore]
-        public int Right { get => X + Length; }
-
-        public void FlipSides()
+        public Sheet(Sheet source) : base(source)
         {
-            int t = Length;
-            Length = Width;
-            Width = t;
+            Thickness = source.Thickness;
+            IsChild = source.IsChild;
+            IsUsed = source.IsUsed;
         }
 
-        public void Orient(bool vertically)
-        {
-            if ((Length < Width) != vertically) FlipSides();
-        }
+        public int Thickness { get; }
+        public bool IsChild { get; private set; } = false;
+        public bool IsUsed { get; private set; } = true;
+        public override string Tag { get => $"{Id},t={Thickness}"; }
 
-        public Rectangle ToRectangle()
+        public Sheet GetChild(Rectangle cut)
         {
-            return new Rectangle(X, Y, Length, Width);
-        }
-
-        public PackingRectangle ToPackingRectangle()
-        {
-            return new PackingRectangle((uint)X, (uint)Y, (uint)Length, (uint)Width, Thickness);
-        }
-
-        public static void RotateAndTag(IEnumerable<Sheet> sheets, bool vertically)
-        {
-            int tag = 0;
-            foreach (var item in sheets)
-            {
-                item.Orient(vertically);
-                item.Tag = tag++;
-            }
-        }
-
-        public static Sheet DeepCopy(Sheet s)
-        {
-            return new Sheet(s.Length, s.Width, s.Thickness)
-            {
-                X = s.X,
-                Y = s.Y,
-                IsChild = s.IsChild,
-                IsUsed = s.IsUsed,
-                Tag = s.Tag
+            var r = Algorithms.LargestRectangleChild(Rect, cut);
+            if (r == Rectangle.Empty) return null;
+            return new Sheet(r, Thickness, Id, Color) 
+            { 
+                IsChild = true, IsUsed = false 
             };
         }
 
-        public static Sheet[] DeepCopy(Sheet[] s)
+        public Sheet GetCutSheet(Beam[] beams)
         {
-            var res = new Sheet[s.Length];
-            for (int i = 0; i < s.Length; i++)
+            var r = Algorithms.CutSheet(Rect, beams);
+            if (r != Rectangle.Empty)
             {
-                res[i] = Sheet.DeepCopy(s[i]);
+                IsUsed = true;
+                return new Sheet(r, Thickness, Id, Color);
             }
-            return res;
+            else
+            {
+                IsUsed = false;
+                return null;
+            }
+        }
+
+        public void SetOffset(int x, int y)
+        {
+            Rect.Offset(x - Rect.X, y - Rect.Y);
         }
     }
 }

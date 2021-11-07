@@ -1,49 +1,63 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Text;
 using netDxf;
 using netDxf.Entities;
+using netDxf.Tables;
+using SixLabors.ImageSharp;
 
 namespace FloorTilingOptimization
 {
     public static class DxfExporter
     {
-        public static void ExportRectangles(Rectangle[] data, string path)
+        public static double TextScalingFactor { get; set; } = 0.1;
+
+        public static void Export(string file, params IPlottableRectContainer[] data)
         {
             var doc = new DxfDocument();
             foreach (var item in data)
             {
-                doc.AddEntity(RectangleToPolyline(item));
+                Layer current = new Layer(item.Name);
+                doc.AddRects(item.GetPlottableRects(), current);
             }
-            doc.Save(path);
+            doc.Save(file);
         }
 
-        public static void ExportSheetsAndMounting(Sheet[] data, Rectangle[] mount, string path)
+        public static void AddRects(this DxfDocument doc, IEnumerable<PlottableRect> data, Layer layer = null)
         {
-            var doc = new DxfDocument();
             foreach (var item in data)
             {
                 if (item.Area == 0) continue;
-                var r = item.ToRectangle();
-                doc.AddEntity(RectangleToPolyline(r));
-                doc.AddEntity(new Text($"{item.Tag}, t={item.Thickness}", 
-                    new Vector3(r.X + r.Width / 2, r.Y + r.Height / 2, 0), r.Height / 10));
+                var r = item.Rect;
+                var color = item.GetAciColor();
+                var e = RectangleToPolyline(r, color);
+                if (layer != null) e.Layer = layer;
+                doc.AddEntity(e);
+                var c = Rectangle.Center(r);
+                bool o = item.Orientation;
+                double th = item.SmallestDimension * TextScalingFactor;
+                int toff = (int)(-th / 2);
+                c.Offset(o ? toff : (int)th, o ? -(int)th : toff);
+                doc.AddEntity(new Text(item.Tag, new Vector3(c.X, c.Y, 0), th)
+                {
+                    Rotation = o ? 90 : 0,
+                    Color = color,
+                    Layer = e.Layer
+                });
             }
-            foreach (var item in mount)
-            {
-                doc.AddEntity(RectangleToPolyline(item));
-            }
-            doc.Save(path);
         }
 
-        private static Polyline RectangleToPolyline(Rectangle r)
+        private static Polyline RectangleToPolyline(Rectangle r, AciColor c = null)
         {
-            return new Polyline(new Vector3[] 
-            { 
+            var p = new Polyline(new Vector3[]
+            {
                 new Vector3(r.X, r.Y, 0), new Vector3(r.X + r.Width, r.Y, 0),
                 new Vector3(r.X + r.Width, r.Y + r.Height, 0), new Vector3(r.X, r.Y + r.Height, 0)
-            }, true);
+            }, true)
+            {
+                Color = c ?? AciColor.ByLayer
+            };
+            return p;
         }
     }
 }

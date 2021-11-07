@@ -16,33 +16,32 @@ namespace FloorTilingOptimization
     {
         public static event EventHandler<Tuple<int, double, double, double>> GenerationRan;
 
-        public static TilingChromosome Run(SupportStructure support, Sheet[] sheets, int steps, CancellationToken cancel)
+        public static TilingChromosome Run(SupportStructure support, Stock stock, 
+            int steps, float mutationProbability, float crossoverProbability,
+            CancellationToken cancel)
         {
             var fitness = new FuncFitness((x) =>
             {
                 var c = (TilingChromosome)x;
-                for (int i = 0; i < sheets.Length; i++)
-                {
-                    sheets[i].Orient(c.GetFlip(i));
-                }
-                var res = support.PlaceAndAssess(sheets, c.GetSequence());
-                c.Sheets = Sheet.DeepCopy(sheets);
-                c.AssessedRects = support.GetLastAssessed();
-                c.Children = support.GetLastChildren();
-                c.TotalAreaCovered = res.Item2;
-                return res.Item1;
+                c.PlacedSheets = new Stock(stock, c.GetFlipString()) { Name = "Overlapped" };
+                var res = Algorithms.PlaceAndAssessSheets(c.PlacedSheets, support, c.GetSequence(),
+                    out Stock children, out Stock assessed);
+                c.Children = children;
+                c.Assessed = assessed; 
+                return res;
             });
-            var chromosome = new TilingChromosome(sheets.Length, true);
+            var chromosome = new TilingChromosome(stock.Sheets.Length, true);
             var crossover = new TilingCrossover();
             var mutation = new TilingMutation();
             var selection = new RouletteWheelSelection();
             var population = new Population(50, 100, chromosome);
-            var ga = new GeneticAlgorithm(population, fitness, selection, crossover, mutation);
-            ga.Termination = new GenerationNumberTermination(steps);
-            ga.MutationProbability = 0.5f;
-            ga.CrossoverProbability = 0.75f;
-
-            ga.TaskExecutor = new LinearTaskExecutor();
+            var ga = new GeneticAlgorithm(population, fitness, selection, crossover, mutation)
+            {
+                Termination = new GenerationNumberTermination(steps),
+                MutationProbability = mutationProbability,
+                CrossoverProbability = crossoverProbability,
+                TaskExecutor = new LinearTaskExecutor()
+            };
 
             double maxFitness = 0;
             TilingChromosome best = null;
@@ -55,7 +54,7 @@ namespace FloorTilingOptimization
                     best = (TilingChromosome)c.Clone();
                 }
                 GenerationRan?.Invoke(ga, new Tuple<int, double, double, double>(
-                    ga.GenerationsNumber, c.Fitness.Value, c.TotalAreaCovered, best.Fitness.Value));
+                    ga.GenerationsNumber, c.Fitness.Value, c.Assessed.TotalArea, best.Fitness.Value));
             };
 
             var gaThread = new Thread(() => ga.Start());

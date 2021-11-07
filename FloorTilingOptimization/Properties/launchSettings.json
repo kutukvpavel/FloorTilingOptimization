@@ -2,7 +2,7 @@
   "profiles": {
     "FloorTilingOptimization": {
       "commandName": "Project",
-      "commandLineArgs": "-b \"beams.csv\" -s \"sheets.csv\" -c 10"
+      "commandLineArgs": "-b \"beams.csv\" -s \"sheets.csv\" -c 20 -f 1000000 -m 0.6 -r 0.8"
     }
   }
 }

@@ -1,194 +1,69 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Drawing;
 using System.Linq;
+using SixLabors.ImageSharp;
+using CsvHelper;
 
 namespace FloorTilingOptimization
 {
-    public class SupportStructure
+    public class SupportStructure : ICsvAware, IPlottableRectContainer
     {
-        public static int Tolerance { get; set; } = 5;
-
-        public SupportStructure(IEnumerable<Beam> data)
+        public SupportStructure() { Beams = new Beam[0]; }
+        public SupportStructure(Beam[] data)
         {
-            var a = new List<Rectangle>();
-            foreach (var item in data)
+            Beams = data;
+            Init();
+        }
+
+        public Beam[] Beams { get; private set; }
+        public int BoundedArea { get; private set; }
+        public Rectangle Bounds { get; private set; }
+        public string Name { get; set; }
+
+        public void ReadCsv(CsvReader r, ColorPalette c)
+        {
+            var beamColor = c.GetNextColor();
+            var wallColor = c.GetNextColor();
+            Beams = r.GetRecords<CsvType>().Select((x, i) =>
             {
-                int x = item.X;
-                switch (item.Reference)
+                bool wall = x.IsWall != 0;
+                return new Beam(x.X, x.Y, x.Length, x.Width, x.RequiredOverlap, i,
+                wall ? wallColor : beamColor, x.Reference)
                 {
-                    case BeamLocationReference.BottomLeft:
-                    case BeamLocationReference.TopLeft:
-                        break;
-                    case BeamLocationReference.BottomRight:
-                    case BeamLocationReference.TopRight:
-                        x -= item.Length;
-                        break;
-                    default: throw new ArgumentException();
-                }
-                int y = item.Y;
-                switch (item.Reference)
-                {
-                    case BeamLocationReference.TopRight:
-                    case BeamLocationReference.TopLeft:
-                        break;
-                    case BeamLocationReference.BottomLeft:
-                    case BeamLocationReference.BottomRight:
-                        y -= item.Width;
-                        break;
-                    default: throw new ArgumentException();
-                }
-                x += item.RequiredOverlap;
-                y += item.RequiredOverlap;
-                int l = item.Length - item.RequiredOverlap;
-                int w = item.Width - item.RequiredOverlap;
-                x = CheckPositiveWithTolerance(x);
-                y = CheckPositiveWithTolerance(y);
-                l = CheckPositiveWithTolerance(l);
-                w = CheckPositiveWithTolerance(w);
-                item.Rect = new Rectangle(x, y, l, w);
-                Bounds = Rectangle.Union(Bounds, item.Rect);
-            }
-            BoundedArea = GetRectArea(Bounds);
-            Bounds.Inflate(Tolerance, Tolerance);
-            _MountingZones = data.ToArray();
+                    IsWall = wall
+                };
+            }).ToArray();
+            Init();
         }
 
-        public int BoundedArea { get; }
-        public Rectangle Bounds { get; } = new Rectangle();
-
-        public void SaveStructureImage()
+        public void WriteExampleCsv(CsvWriter w)
         {
-            ImagingApi.SaveRectanglesAsImage(_MountingZones.Select(x => x.Rect).ToArray(), Bounds, 
-                ImagingApi.CreateFilePathInCurrentDir("structure.png"));
+            w.WriteHeader<CsvType>();
+            w.NextRecord();
         }
 
-        public Sheet[] GetLastChildren()
+        public PlottableRect[] GetPlottableRects()
         {
-            return _Children.ToArray();
+            return Beams;
         }
 
-        public Rectangle[] GetLastAssessed()
+        private void Init()
         {
-            return _LastAssessed.ToArray();
+            Bounds = Algorithms.GetBounds(Beams.Select(x => x.Rect));
+            BoundedArea = Algorithms.Area(Bounds);
         }
 
-        public Rectangle[] GetMountingZones()
+        private class CsvType
         {
-            return _MountingZones.Select(x => x.Rect).ToArray();
+            public CsvType() { }
+            public int X { get; set; }
+            public int Y { get; set; }
+            public int Length { get; set; }
+            public int Width { get; set; }
+            public int RequiredOverlap { get; set; }
+            public RectLocationReference Reference { get; set; }
+            public int IsWall { get; set; }
         }
-
-        public Rectangle GetCutRect(Sheet s)
-        {
-            Rectangle r = s.ToRectangle();
-            Rectangle u = Rectangle.Empty;
-            int c = 0;
-            foreach (var item in _MountingZones)
-            {
-                Rectangle i = Rectangle.Intersect(item.Rect, r);
-                if (!i.IsEmpty)
-                {
-                    if (c++ == 0)
-                    {
-                        u = i;
-                    }
-                    else
-                    {
-                        u = Rectangle.Union(u, i);
-                    }
-                }
-            }
-            if (c == 1) return Rectangle.Empty;
-            return u;
-        }
-
-        public Tuple<double, double> PlaceAndAssess(Sheet[] s, int[] placementOrder)
-        {
-            _Children.Clear();
-            _LastAssessed.Clear();
-            _LastAssessed.Capacity = s.Length;
-            int lastBottom = 0;
-            double coveredArea = 0;
-            double totalSheetArea = 0;
-            int bottomWithTolerance = Bounds.Bottom - 9 * Tolerance;
-            List<Rectangle> lastColumn = new List<Rectangle>();
-            List<Rectangle> currentColumn = new List<Rectangle>();
-            foreach (var item in placementOrder)
-            {
-                var it = s[item];
-                it.Y = lastBottom;
-                it.X = GetLeftAlignment(it, lastColumn) - Tolerance;
-                var c = GetCutRect(it);
-                totalSheetArea += it.Area;
-                it.IsUsed = !c.IsEmpty;
-                if (it.IsUsed)
-                {
-                    _Children.Add(new Sheet(it.Length - c.Width, it.Width - c.Width, it.Thickness) 
-                    { 
-                        Tag = it.Tag, IsUsed = false, IsChild = true, X = _Children.LastOrDefault()?.Right ?? 0
-                    });
-                    currentColumn.Add(c);
-                    coveredArea += GetRectArea(c);
-                    it.X += Tolerance;
-                    c.Offset(Tolerance, 0);
-                    _LastAssessed.Add(c);
-                    lastBottom += it.Width + Tolerance;
-                    if (lastBottom > bottomWithTolerance)
-                    {
-                        lastColumn = currentColumn;
-                        currentColumn = new List<Rectangle>();
-                        lastBottom = 0;
-                    }
-                }
-            }
-            double score = coveredArea / BoundedArea - (totalSheetArea - coveredArea) / totalSheetArea;
-            return new Tuple<double, double>(score, coveredArea);
-        }
-
-        #region Private
-
-        private Beam[] _MountingZones;
-        private List<Rectangle> _LastAssessed = new List<Rectangle>();
-        private List<Sheet> _Children = new List<Sheet>();
-
-        private static int CheckPositiveWithTolerance(int i)
-        {
-            if (i < 0)
-            {
-                if (i > -Tolerance)
-                {
-                    return 0;
-                }
-                else
-                {
-                    throw new ArgumentException();
-                }
-            }
-            else
-            {
-                return i;
-            }
-        }
-
-        private static int GetRectArea(Rectangle r)
-        {
-            return r.Width * r.Height;
-        }
-
-        private static int GetLeftAlignment(Sheet s, List<Rectangle> lastColumn)
-        {
-            int yMin = s.Y - Tolerance;
-            int yMax = s.Bottom + Tolerance;
-            int maxRight = 0;
-            foreach (var item in lastColumn)
-            {
-                if (!(yMin > item.Bottom || yMax < item.Top))
-                    if (item.Right > maxRight) maxRight = item.Right;
-            }
-            return maxRight;
-        }
-
-        #endregion
     }
 }
