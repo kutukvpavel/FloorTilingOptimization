@@ -1,11 +1,11 @@
-﻿using System;
+﻿using CommandLine;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using CommandLine;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
 
 namespace FloorTilingOptimization
 {
@@ -90,7 +90,7 @@ namespace FloorTilingOptimization
             if (originalFitness == fitness || originalFitness == null)
             {
                 File.AppendAllLines(o.RegenerateOutput, new string[] { report });
-                SaveOutputData(time, structure, sheets, assessed, children, order, "regen_");
+                SaveOutputGAData(time, structure, sheets, assessed, children, "regen_");
             }
             else
             {
@@ -105,7 +105,7 @@ namespace FloorTilingOptimization
             if (o.RunRectpack)
             {
                 Console.WriteLine("Running RectpackSharp...");
-                RectPack.PackAndSaveImage(sheets.Sheets, o.PackingDensity);
+                RectPackProvider.PackAndSaveImage(sheets.Sheets, o.PackingDensity);
             }
             if (o.RunGA)
             {
@@ -130,7 +130,7 @@ namespace FloorTilingOptimization
 {string.Join(", ", best.GetFlipString())}
 {best.Fitness}
 {best.Assessed.TotalArea}");
-                SaveOutputData(time, structure, best.PlacedSheets, best.Assessed, best.Children, sequence);
+                SaveOutputGAData(time, structure, best.PlacedSheets, best.Assessed, best.Children);
             }
             Console.WriteLine("Finished.");
         }
@@ -166,8 +166,8 @@ namespace FloorTilingOptimization
             structure.Name = "Support Structure (As Loaded)";
         }
 
-        private static void SaveOutputData(string time, SupportStructure structure, Stock sheets,
-            Stock assessed, Stock children, int[] sequence, string prefix = "")
+        private static void SaveOutputGAData(string time, SupportStructure structure, Stock sheets,
+            Stock assessed, Stock children, string prefix = "")
         {
             //Images are a fast and easy way to assess the solution
             Console.WriteLine($"Drawing...");
@@ -177,18 +177,22 @@ namespace FloorTilingOptimization
                 using (Image<Rgba32> overlap = image.Clone())
                 {
                     overlap.AddRects(xOffset, yOffset, sheets.Sheets);
+                    overlap.Downscale();
                     overlap.Save(CreateFilePathInCurrentDir($"{prefix}overlap_{time}.png"));
                 }
                 using (Image<Rgba32> cut = image.Clone())
                 {
                     cut.AddRects(xOffset, yOffset, assessed.Sheets);
+                    cut.Downscale();
                     cut.Save(CreateFilePathInCurrentDir($"{prefix}cut_{time}.png"));
                 }
                 using (Image<Rgba32> c = image.Clone())
                 {
                     c.AddRects(xOffset, yOffset, children.Sheets);
+                    c.Downscale();
                     c.Save(CreateFilePathInCurrentDir($"{prefix}children_{time}.png"));
                 }
+                image.Downscale();
                 image.Save(CreateFilePathInCurrentDir($"{prefix}structure_{time}.png"));
             }
             //DXF can be imported into AutoCAD for further manual tweaking

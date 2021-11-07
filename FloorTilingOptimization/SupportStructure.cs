@@ -4,6 +4,7 @@ using System.Text;
 using System.Linq;
 using SixLabors.ImageSharp;
 using CsvHelper;
+using CsvHelper.Configuration.Attributes;
 
 namespace FloorTilingOptimization
 {
@@ -61,8 +62,11 @@ namespace FloorTilingOptimization
             public int Y { get; set; }
             public int Length { get; set; }
             public int Width { get; set; }
+            [Optional]
             public int RequiredOverlap { get; set; }
+            [Optional]
             public RectLocationReference Reference { get; set; }
+            [Optional]
             public int IsWall { get; set; }
         }
     }

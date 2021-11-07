@@ -53,6 +53,16 @@ namespace FloorTilingOptimization
                     .DrawText(item.Tag, IndexFont, Color.White, textPoint));
             }
         }
+        public static void AddRects(this Image<Rgba32> image, float xOffset, float yOffset,
+           IEnumerable<Rectangle> rectangles, ColorPalette c)
+        {
+            foreach (var item in rectangles)
+            {
+                if (Algorithms.Area(item) == 0) continue;
+                item.Offset((int)xOffset, (int)yOffset);
+                image.Mutate(x => x.Fill(c.GetNextColor(), item));
+            }
+        }
 
         private static System.Numerics.Matrix3x2 GetTextRotationMatrix(PointF p)
         {

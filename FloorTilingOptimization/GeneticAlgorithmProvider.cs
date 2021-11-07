@@ -1,13 +1,10 @@
 ﻿using GeneticSharp.Domain;
-using GeneticSharp.Domain.Crossovers;
 using GeneticSharp.Domain.Fitnesses;
-using GeneticSharp.Domain.Mutations;
 using GeneticSharp.Domain.Populations;
 using GeneticSharp.Domain.Selections;
 using GeneticSharp.Domain.Terminations;
 using GeneticSharp.Infrastructure.Framework.Threading;
 using System;
-using System.Linq;
 using System.Threading;
 
 namespace FloorTilingOptimization
@@ -48,7 +45,7 @@ namespace FloorTilingOptimization
             ga.GenerationRan += (o, e) =>
             {
                 var c = (TilingChromosome)ga.BestChromosome;
-                if (c.Fitness.Value > maxFitness)
+                if (c.Fitness.Value >= maxFitness)
                 {
                     maxFitness = c.Fitness.Value;
                     best = (TilingChromosome)c.Clone();

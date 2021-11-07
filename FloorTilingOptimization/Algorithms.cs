@@ -16,7 +16,7 @@ namespace FloorTilingOptimization
 
     public static class Algorithms
     {
-        public static int PlacementTolerance { get; set; }
+        public static int PlacementTolerance { get; set; } = 5;
 
         private static int GetLeftAlignment(Rectangle s, IEnumerable<Rectangle> lastColumn)
         {
@@ -65,7 +65,7 @@ namespace FloorTilingOptimization
             }
             children = new Stock(_children) { Name = "Children" };
             assessed = new Stock(_assessed) { Name = "Assessed" };
-            return assessed.TotalArea / ss.BoundedArea - (stock.TotalArea - assessed.TotalArea) / stock.TotalArea;
+            return (double)assessed.TotalArea / ss.BoundedArea - (double)(stock.TotalArea - assessed.TotalArea) / stock.TotalArea;
         }
 
         public static Rectangle CutSheet(Rectangle s, Beam[] beams)
