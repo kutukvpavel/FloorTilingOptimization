@@ -12,7 +12,7 @@ namespace FloorTilingOptimization
     public static class ImageExporter
     {
         public static float ImageExtraSpaceMultiplier { get; set; } = 1.2f;
-        public static Font IndexFont { get; set; } = new Font(SystemFonts.Find("Arial"), 200);
+        public static Font TagFont { get; set; } = new Font(SystemFonts.Find("Arial"), 200);
 
         public static Image<Rgba32> CreateImage(Rectangle bounds, out float xOffset, out float yOffset)
         {
@@ -37,6 +37,7 @@ namespace FloorTilingOptimization
         {
             double downscaling = (double)targetHorizontalPixels / image.Width;
             image.Mutate(x => x.Resize(targetHorizontalPixels, (int)Math.Round(image.Height * downscaling)));
+            GC.Collect();
         }
 
         public static void AddRects(this Image<Rgba32> image, float xOffset, float yOffset, 
@@ -45,12 +46,23 @@ namespace FloorTilingOptimization
             foreach (var item in rectangles)
             {
                 if (item.Area == 0) continue;
-                Rectangle r = item.Rect;
-                image.Mutate(x => x.Fill(item.Color, new RectangleF(r.X + xOffset, r.Y + yOffset, r.Width, r.Height)));
-                var textPoint = Rectangle.Center(r);
-                textPoint.Offset((int)xOffset - IndexFont.LineHeight, (int)yOffset - IndexFont.LineHeight / 2);
-                image.Mutate(x => x.SetDrawingTransform(GetTextRotationMatrix(textPoint))
-                    .DrawText(item.Tag, IndexFont, Color.White, textPoint));
+                RectangleF r = item.Rect;
+                r.Offset(xOffset, yOffset);
+                image.Mutate(x => x.Fill(item.Color, r));
+                if (item.Tag == null) continue;
+                bool o = item.Orientation;
+                var textPoint = RectangleF.Center(r);
+                var tMeasure = TextMeasurer.Measure(item.Tag, new RendererOptions(TagFont));
+                float tLenOffset = -tMeasure.Width / 2;
+                float tHOffset = -tMeasure.Height / 2;
+                textPoint.Offset(o ? tHOffset : tLenOffset, o ? -tLenOffset : tHOffset);
+                image.Mutate(x => 
+                {
+                    var rdo = o ? new DrawingOptions { Transform = GetTextRotationMatrix(textPoint) } 
+                        : new DrawingOptions();
+                    x.DrawText(rdo, item.Tag, TagFont, Color.White, textPoint);
+                    //x.Draw(rdo, Color.White, 5.0f, new RectangleF(textPoint, new SizeF(tMeasure.Width, tMeasure.Height)));
+                });
             }
         }
         public static void AddRects(this Image<Rgba32> image, float xOffset, float yOffset,
@@ -66,7 +78,7 @@ namespace FloorTilingOptimization
 
         private static System.Numerics.Matrix3x2 GetTextRotationMatrix(PointF p)
         {
-            return Matrix3x2Extensions.CreateRotationDegrees(90, p);
+            return Matrix3x2Extensions.CreateRotationDegrees(-90, p);
         }
     }
 }

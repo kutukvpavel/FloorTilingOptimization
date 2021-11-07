@@ -49,8 +49,8 @@ namespace FloorTilingOptimization
                 {
                     _children.Add(it.GetChild(c.Rect));
                     currentColumn.Add(c.Rect);
-                    it.Rect.Offset(PlacementTolerance, 0);
-                    c.Rect.Offset(PlacementTolerance, 0);
+                    it.Offset(PlacementTolerance, 0);
+                    c.Offset(PlacementTolerance, 0);
                     _assessed.Add(c);
                     lastBottom = it.Rect.Bottom + PlacementTolerance;
                     if (lastBottom > bottomWithTolerance)

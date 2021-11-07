@@ -18,8 +18,6 @@ namespace FloorTilingOptimization
             Length = 1;
             CurrentColor = fixedColor;
         }
-        public ColorPalette() : this(Color.White)
-        { }
 
         public int Current { get; private set; }
         public Rgba32 CurrentColor { get; private set; }

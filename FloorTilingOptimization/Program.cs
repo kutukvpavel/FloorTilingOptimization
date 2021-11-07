@@ -135,9 +135,16 @@ namespace FloorTilingOptimization
             Console.WriteLine("Finished.");
         }
 
+        private static string _ResultsSubfolder = null;
         public static string CreateFilePathInCurrentDir(string name)
         {
-            return Path.Combine(Environment.CurrentDirectory, "results", name);
+            var p = Path.Combine(Environment.CurrentDirectory, "results", name);
+            if (_ResultsSubfolder == null)
+            {
+                _ResultsSubfolder = Path.GetDirectoryName(p);
+                if (!Directory.Exists(_ResultsSubfolder)) Directory.CreateDirectory(_ResultsSubfolder);
+            }
+            return p;
         }
 
         private static CancellationTokenSource _TokenSource;

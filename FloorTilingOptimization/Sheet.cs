@@ -52,10 +52,5 @@ namespace FloorTilingOptimization
                 return null;
             }
         }
-
-        public void SetOffset(int x, int y)
-        {
-            Rect.Offset(x - Rect.X, y - Rect.Y);
-        }
     }
 }

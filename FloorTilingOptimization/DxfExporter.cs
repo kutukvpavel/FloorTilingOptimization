@@ -1,10 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using netDxf;
+﻿using netDxf;
 using netDxf.Entities;
+using netDxf.Objects;
 using netDxf.Tables;
 using SixLabors.ImageSharp;
+using System.Collections.Generic;
 
 namespace FloorTilingOptimization
 {
@@ -30,20 +29,31 @@ namespace FloorTilingOptimization
                 if (item.Area == 0) continue;
                 var r = item.Rect;
                 var color = item.GetAciColor();
-                var e = RectangleToPolyline(r, color);
-                if (layer != null) e.Layer = layer;
-                doc.AddEntity(e);
-                var c = Rectangle.Center(r);
-                bool o = item.Orientation;
-                double th = item.SmallestDimension * TextScalingFactor;
-                int toff = (int)(-th / 2);
-                c.Offset(o ? toff : (int)th, o ? -(int)th : toff);
-                doc.AddEntity(new Text(item.Tag, new Vector3(c.X, c.Y, 0), th)
+                var rectEntity = RectangleToPolyline(r, color);
+                if (layer != null) rectEntity.Layer = layer;
+                string tag = item.GetDxfSafeTag();
+                if (tag != null)
                 {
-                    Rotation = o ? 90 : 0,
-                    Color = color,
-                    Layer = e.Layer
-                });
+                    Group g = new Group(tag);
+                    g.Entities.Add(rectEntity);
+                    var c = Rectangle.Center(r);
+                    bool o = item.Orientation;
+                    int th = (int)(item.SmallestDimension * TextScalingFactor);
+                    int tLenOffset = -tag.Length * th / 3;
+                    int tHOffset = -th / 2;
+                    c.Offset(o ? -tHOffset : tLenOffset, o ? tLenOffset : tHOffset);
+                    g.Entities.Add(new Text(item.Tag, new Vector3(c.X, c.Y, 0), th)
+                    {
+                        Rotation = o ? 90 : 0,
+                        Color = color,
+                        Layer = rectEntity.Layer
+                    });
+                    doc.Groups.Add(g);
+                }
+                else
+                {
+                    doc.AddEntity(rectEntity);
+                }
             }
         }
 
