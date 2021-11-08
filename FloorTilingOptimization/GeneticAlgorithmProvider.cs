@@ -37,7 +37,11 @@ namespace FloorTilingOptimization
                 Termination = new GenerationNumberTermination(steps),
                 MutationProbability = mutationProbability,
                 CrossoverProbability = crossoverProbability,
-                TaskExecutor = new LinearTaskExecutor()
+                TaskExecutor = new ParallelTaskExecutor()
+                {
+                    MaxThreads = 4,
+                    MinThreads = 2
+                }
             };
 
             double maxFitness = 0;

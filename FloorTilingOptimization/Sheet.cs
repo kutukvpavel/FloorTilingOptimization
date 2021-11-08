@@ -8,6 +8,8 @@ namespace FloorTilingOptimization
 {
     public class Sheet : PlottableRect
     {
+        public static int ChildAreaLimit { get; set; } = 500000; //mm^2
+
         public Sheet(int l, int w, int t, int index, Color c) 
             : this(new Rectangle(0, 0, l, w), t, index, c)
         { }
@@ -31,7 +33,7 @@ namespace FloorTilingOptimization
         public Sheet GetChild(Rectangle cut)
         {
             var r = Algorithms.LargestRectangleChild(Rect, cut);
-            if (r == Rectangle.Empty) return null;
+            if (Algorithms.Area(r) < ChildAreaLimit) return null;
             return new Sheet(r, Thickness, Id, Color) 
             { 
                 IsChild = true, IsUsed = false 

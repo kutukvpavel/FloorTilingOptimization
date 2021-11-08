@@ -17,6 +17,7 @@ namespace FloorTilingOptimization
     public static class Algorithms
     {
         public static int PlacementTolerance { get; set; } = 5;
+        public static float ThicknessPackingWeight { get; set; } = 0.1f;
 
         private static int GetLeftAlignment(Rectangle s, IEnumerable<Rectangle> lastColumn)
         {
@@ -40,19 +41,24 @@ namespace FloorTilingOptimization
             int bottomWithTolerance = ss.Bounds.Bottom - 9 * PlacementTolerance;
             List<Rectangle> lastColumn = new List<Rectangle>();
             List<Rectangle> currentColumn = new List<Rectangle>();
+            int thicknessGroupings = 0;
+            int lastThickness = 0;
             foreach (var item in placementOrder)
             {
                 var it = stock.Sheets[item];
-                it.SetOffset(GetLeftAlignment(it.Rect, lastColumn) - PlacementTolerance, lastBottom);
+                it.SetOffset(0, lastBottom);
+                it.Offset(GetLeftAlignment(it.Rect, lastColumn) - PlacementTolerance, 0);
                 var c = it.GetCutSheet(ss.Beams);
                 if (it.IsUsed)
                 {
-                    _children.Add(it.GetChild(c.Rect));
+                    var ch = it.GetChild(c.Rect);
+                    if (ch != null) _children.Add(ch);
                     currentColumn.Add(c.Rect);
                     it.Offset(PlacementTolerance, 0);
                     c.Offset(PlacementTolerance, 0);
                     _assessed.Add(c);
                     lastBottom = it.Rect.Bottom + PlacementTolerance;
+                    if (it.Thickness == lastThickness) thicknessGroupings++;
                     if (lastBottom > bottomWithTolerance)
                     {
                         lastColumn.Clear();
@@ -60,12 +66,19 @@ namespace FloorTilingOptimization
                         lastColumn = currentColumn;
                         currentColumn = t;
                         lastBottom = 0;
+                        lastThickness = 0;
+                    }
+                    else
+                    {
+                        lastThickness = it.Thickness;
                     }
                 }
             }
             children = new Stock(_children) { Name = "Children" };
             assessed = new Stock(_assessed) { Name = "Assessed" };
-            return (double)assessed.TotalArea / ss.BoundedArea - (double)(stock.TotalArea - assessed.TotalArea) / stock.TotalArea;
+            double score = (double)assessed.TotalArea / ss.BoundedArea 
+                - (double)(stock.TotalArea - assessed.TotalArea) / stock.TotalArea;
+            return score + (1 - score) * ThicknessPackingWeight * thicknessGroupings / assessed.Sheets.Length;
         }
 
         public static Rectangle CutSheet(Rectangle s, Beam[] beams)
@@ -122,6 +135,7 @@ namespace FloorTilingOptimization
 
         public static Rectangle LargestRectangleChild(Rectangle stock, Rectangle cutout)
         {
+            if (stock == cutout) return Rectangle.Empty;
             var points = RectanglePoints(cutout);
             var sc = Rectangle.Center(stock);
             var cc = Rectangle.Center(cutout);
@@ -134,8 +148,11 @@ namespace FloorTilingOptimization
                 : Rectangle.FromLTRB(closestToCenter.X, stock.Top, stock.Right, stock.Bottom);
             var horizontalCut = upperHalf ? Rectangle.FromLTRB(stock.X, stock.Top, stock.Right, closestToCenter.Y)
                 : Rectangle.FromLTRB(stock.X, closestToCenter.Y, stock.Right, stock.Bottom);
+            int sa = Area(stock);
             int va = Area(verticalCut);
+            if (va == sa) va = 0;
             int ha = Area(horizontalCut);
+            if (ha == sa) ha = 0;
             if (ha > va)
             {
                 if (ha <= 0) return Rectangle.Empty;

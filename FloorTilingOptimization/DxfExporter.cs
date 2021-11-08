@@ -9,7 +9,7 @@ namespace FloorTilingOptimization
 {
     public static class DxfExporter
     {
-        public static double TextScalingFactor { get; set; } = 0.1;
+        public static float TextScalingFactor { get; set; } = 0.1f;
 
         public static void Export(string file, params IPlottableRectContainer[] data)
         {
@@ -31,16 +31,16 @@ namespace FloorTilingOptimization
                 var color = item.GetAciColor();
                 var rectEntity = RectangleToPolyline(r, color);
                 if (layer != null) rectEntity.Layer = layer;
-                string tag = item.GetDxfSafeTag();
-                if (tag != null)
+                //string tag = item.GetDxfSafeTag();
+                if (item.Tag != null)
                 {
-                    Group g = new Group(tag);
+                    Group g = new Group($"{rectEntity.Layer.Name} - {item.Id}");
                     g.Entities.Add(rectEntity);
-                    var c = Rectangle.Center(r);
+                    var c = RectangleF.Center(r);
                     bool o = item.Orientation;
-                    int th = (int)(item.SmallestDimension * TextScalingFactor);
-                    int tLenOffset = -tag.Length * th / 3;
-                    int tHOffset = -th / 2;
+                    float th = item.SmallestDimension * TextScalingFactor;
+                    float tLenOffset = -item.Tag.Length * th / 3;
+                    float tHOffset = -th / 2;
                     c.Offset(o ? -tHOffset : tLenOffset, o ? tLenOffset : tHOffset);
                     g.Entities.Add(new Text(item.Tag, new Vector3(c.X, c.Y, 0), th)
                     {

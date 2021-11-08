@@ -1,10 +1,9 @@
-﻿using System;
+﻿using SixLabors.Fonts;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Drawing.Processing;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Drawing.Processing;
-using SixLabors.Fonts;
-using System.Linq;
+using System;
 using System.Collections.Generic;
 
 namespace FloorTilingOptimization
