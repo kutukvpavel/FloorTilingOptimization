@@ -56,9 +56,11 @@ namespace FloorTilingOptimization
                 }
                 else
                 {
+                    LoadInputData(x, out Stock sheets, out SupportStructure structure);
                     for (int i = 0; i < x.Cycles; i++)
                     {
-                        RealMain(x);
+                        _FitnessEvolution = new List<float>(x.MaxSteps);
+                        RealMain(x, sheets, structure);
                     }
                 }
             });
@@ -98,10 +100,9 @@ namespace FloorTilingOptimization
             }
         }
 
-        public static void RealMain(Options o)
+        public static void RealMain(Options o, Stock sheets, SupportStructure structure)
         {
             _TokenSource = new CancellationTokenSource();
-            LoadInputData(o, out Stock sheets, out SupportStructure structure);
             if (o.RunRectpack)
             {
                 Console.WriteLine("Running RectpackSharp...");
@@ -110,7 +111,6 @@ namespace FloorTilingOptimization
             if (o.RunGA)
             {
                 //Prepare and run the GA
-                _FitnessEvolution = new List<float>(o.MaxSteps * o.Cycles);
                 Console.WriteLine("Running GA...");
                 Console.CancelKeyPress += Console_CancelKeyPress;
                 GeneticAlgorithmProvider.GenerationRan += GeneticAlgorithmProvider_GenerationRan;
