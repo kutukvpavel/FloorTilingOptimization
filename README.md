@@ -21,7 +21,7 @@ The walls defined for the structure are not used during the optimization process
    - Each sheet is intesected with all of the beams, the union rectangle of the resulting intersections defines how the sheet should be cut
    - Save 3 sheets: positioned version of the original sheet ("assessed"), cut and positioned version of it ("cut") and its largest child
  - Assess the placement (calculate fitness) using formula: 
- `F = [Covered Area] / [Total Support Area] - [Total Children Area] / [Total Sheet Area] + [Number of Joints of Sheets of Equal Thicknesses] / [Total Number of Joints]`
+ `F = [Covered Area] / [Total Support Area] - [Total Children Area] / [Total Sheet Area] + [Joint Factor Weight = 0.1] [Number of Joints of Sheets of Equal Thicknesses] / [Total Number of Joints]`
  - Combine the index string and the bit string into a single compound chromosome (with different operators, index string is permuted, whereas bit string is mainly mutated, and crossover between two strings is not allowed)
  - Perform genetic algorithm operations on this chromosome
  - Repeat untill satisfactory fitness is achieved or until step limit is reached
