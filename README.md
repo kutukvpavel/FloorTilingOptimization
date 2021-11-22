@@ -39,8 +39,23 @@ The contents include:
  - DXF includes 4 layers (overlapped, cut, children, support), each sheet is tagged and grouped with its tag
  - Text file "order" includes chromosome contents, best fitness and covered area
  - Text file "evolution" contains fitness evolution in case you'd like to plot it
+
+**Additional features:** RectpackSharp interface (legacy).
  
 # Examples
 Input CSV files: look inside the project folder.
 
+CLI arguments: bare minimum is `-b "beams.csv" -s "sheets.csv"`, you can run it without any arguments to see help
+
 Output: https://imgur.com/a/Nt7OMEQ
+
+# Dependecies
+
+This project wouldn't have been possible without the following awesome packages:
+
+ - https://github.com/commandlineparser/commandline
+ - https://joshclose.github.io/CsvHelper/
+ - https://github.com/giacomelli/GeneticSharp
+ - https://github.com/haplokuon/netDxf
+ - https://github.com/ThomasMiz/RectpackSharp (though now it's a legacy inside this project)
+ - https://github.com/SixLabors/ImageSharp (+ currently beta package ImageSharp.Drawing)
