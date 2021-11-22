@@ -42,4 +42,5 @@ The contents include:
  
 # Examples
 Input CSV files: look inside the project folder.
+
 Output: https://imgur.com/a/Nt7OMEQ
