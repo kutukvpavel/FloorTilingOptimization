@@ -1,7 +1,7 @@
 # FloorTilingOptimization
 
 This app tries to find an optimal arrangement of rectangular sheets (or tiles) of different sizes and thicknesses on a predefined support structure 
-on the condition that the sheets can only be mounted on the beams. The sheets can be cut and/or flipped.
+on the condition that the sheets can only be mounted on the beams. The sheets can be cut and/or flipped. This is sort of a 2D *cutting stock* problem.
 
 The support structure usually consists of several parallel beams (preferably they are oriented vertically w.r.t. screen coordinates convention, i.e. dy > dx).
 The walls defined for the structure are not used during the optimization process, they are merely exported to the final DXF drawings and images for convinience.
@@ -27,18 +27,19 @@ The walls defined for the structure are not used during the optimization process
  - Repeat untill satisfactory fitness is achieved or until step limit is reached
  - Cycle through N random seeds (sometimes a really bad seed leads to a non-converging genetic algorithm) if this option is specified
  
-**Results** are saved as 3 images, DXF drawing, and 2 text files.
+**Results** are saved as 4 PNG images (scaled to 2K resolution), a DXF drawing, and 2 text files.
 All the result correspond to the best chromosome (and not the last one).
 
 The contents include:
 
- - Image of overlapped (not yet cut) sheets overlayed on the beams and walls
- - Image of cut sheets overlayed on the beams and walls
- - Image of children sheets overlayed on the beams and walls
+ - An image of overlapped (not yet cut) sheets overlayed on the beams and walls
+ - An image of cut sheets overlayed on the beams and walls
+ - An image of children sheets overlayed on the beams and walls
+ - An image of the support structure (as loaded from the CSV file)
  - DXF includes 4 layers (overlapped, cut, children, support), each sheet is tagged and grouped with its tag
  - Text file "order" includes chromosome contents, best fitness and covered area
  - Text file "evolution" contains fitness evolution in case you'd like to plot it
  
 # Examples
-
-
+Input CSV files: look inside the project folder.
+Output: https://imgur.com/a/Nt7OMEQ
