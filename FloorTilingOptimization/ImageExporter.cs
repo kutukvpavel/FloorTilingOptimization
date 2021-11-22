@@ -11,7 +11,7 @@ namespace FloorTilingOptimization
     public static class ImageExporter
     {
         public static float ImageExtraSpaceMultiplier { get; set; } = 1.2f;
-        public static Font TagFont { get; set; } = new Font(SystemFonts.Find("Arial"), 200);
+        public static Font TagFont { get; set; } = new Font(SystemFonts.Get("Arial"), 200);
 
         public static Image<Rgba32> CreateImage(Rectangle bounds, out float xOffset, out float yOffset)
         {
@@ -51,7 +51,7 @@ namespace FloorTilingOptimization
                 if (item.Tag == null) continue;
                 bool o = item.Orientation;
                 var textPoint = RectangleF.Center(r);
-                var tMeasure = TextMeasurer.Measure(item.Tag, new RendererOptions(TagFont));
+                var tMeasure = TextMeasurer.Measure(item.Tag, new TextOptions(TagFont));
                 float tLenOffset = -tMeasure.Width / 2;
                 float tHOffset = -tMeasure.Height / 2;
                 textPoint.Offset(o ? tHOffset : tLenOffset, o ? -tLenOffset : tHOffset);
